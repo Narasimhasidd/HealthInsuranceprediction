@@ -1,0 +1,150 @@
+## Import Data
+
+import numpy as np
+import pandas as pd
+import seaborn as sns 
+import matplotlib.pyplot as plt
+
+## Sampling the data
+
+# Read the data
+data_df=pd.read_csv("insurance.csv")
+
+# See sample data
+data_df.head()
+
+mv={'a':0,'b':0,'c':0,'d':0,'e':0,'f':0,'g':0,'h':0,'i':0,'j':0}
+for i in range(10):
+    k=data_df[data_df['disease']==chr(97+i)]
+    mv[chr(97+i)]=sum(list(k['charges']))/len(k)
+
+
+## Preprocessing the data
+
+# Check for the dtypes & nulls
+data_df.info()
+
+# Just being doubly sure
+data_df.isnull().sum()
+
+# Getting some stats about the data
+data_df.describe()
+
+# Getting the numerical columns first
+data_df.describe().columns
+
+# Separating numerical and categorical data
+df_num = data_df[['age','bmi','charges']]
+df_cat = data_df[['disease','sex','smoker','region']]
+
+# Converting the categorical data into numeric data.
+# One hot enconding the categorical data
+df1 = pd.get_dummies(df_cat)
+df1
+
+# Concatenating the categorical and numerical data to form our data set.
+data = pd.concat([df_num,df1], axis=1)
+data
+
+## Exploratory Data Analysis
+
+# Finding out the correlation between the features
+data.corr()
+
+# Heatmap to show correlation
+sns.heatmap(data.corr(), cmap='RdBu')
+
+From this we can see the following observations:
+
+1. Strong correlation between charges and smoker_yes.
+2. Weak correlation between charges and age.
+2. Weak correlation between charges and bmi. 
+3. Weak correlation between bmi and region_southeast.
+
+Since the values for the weak correlations are less than 0.5 we can term them as insignificant and drop them
+
+# Correlation between charges and the other features.
+data.corr()['charges'].sort_values()
+
+# Graph showing the min and maximum charges
+count, bin_edges = np.histogram(data['charges'])
+data['charges'].plot(kind='hist', xticks=bin_edges, figsize=(20,12))
+plt.title("Patient Charges")
+plt.show()
+
+## Model Building
+
+We begin to predict the charges with the help of the other features.
+
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+### Model fitting
+
+x = data.drop(['charges'], axis = 1)
+y = data['charges']
+
+x_train,x_test,y_train,y_test = train_test_split(x,y, test_size=0.3, random_state = 0)
+
+lr = LinearRegression().fit(x_train,y_train)
+
+### Model prediction
+
+y_train_pred = lr.predict(x_train)
+y_test_pred = lr.predict(x_test)
+
+print(lr.score(x_test,y_test))
+
+
+our basic linear regression model predicting the cost of treatment looks good.
+
+## Model Evaluation
+
+from sklearn.metrics import r2_score,mean_squared_error
+
+print('MSE train data:' , mean_squared_error(y_train,y_train_pred))
+print('MSE test data:' , mean_squared_error(y_test,y_test_pred))
+
+print('R2 train data:', r2_score(y_train,y_train_pred))
+print('R2 test data:' , r2_score(y_test,y_test_pred))
+
+
+The closely matching results between training and test data means that our model is accurate.
+
+
+
+age,sex,bmi,disease,smoker,region=0,0,0,0,0,0
+age=int(input('Please enter your Age: '))
+sex=input('Please enter your gender(m/f): ')
+bmi=float(input('Please enter your Body Mass Index: '))
+print('Please enter the disease: \n0-Ischemic heart disease, or coronary artery disease\n1-Brain Stroke \n2-Lower respiratory infections \n3-Chronic obstructive pulmonary disease\n4-Trachea, bronchus, and lung cancers \n5-Diabetes mellitus \n6-Alzheimer’s disease and other dementias \n7-Dehydration due to diarrheal diseases \n8-Tuberculosis \n9-Cirrhosis')
+disease=int(input('Select the disease appropriately: '))
+smoker=int(input('Do you smoke? \nYes- 1\nNo -0\nPlease enter your answer: '))
+region=input('Please select the region where you wanted to get medicated: \n0-Hyderabad\n1-Banglore\n2-Chennai\n3-Delhi\nPlease enter an apppropriate option: ')
+x_new_predict={
+    "age":age,
+    "bmi":bmi,
+    "disease_a":1 if disease==0 else 0,
+    "disease_b":1 if disease==1 else 0,
+    "disease_c":1 if disease==2 else 0,
+    "disease_d":1 if disease==3 else 0,
+    "disease_e":1 if disease==4 else 0,
+    "disease_f":1 if disease==5 else 0,
+    "disease_g":1 if disease==6 else 0,
+    "disease_h":1 if disease==7 else 0,
+    "disease_i":1 if disease==8 else 0,
+    "disease_j":1 if disease==9 else 0,
+    "sex_male":1 if sex=='m' else 0,
+    "sex_female":1 if sex=='f' else 0,
+    "smoker_no":1 if smoker==0 else 0,
+    "smoker_yes":1 if smoker==1 else 0,
+    "region_Hyderabad":1 if region==0 else 0,
+    "region_Bangalore":1 if region==1 else 0,
+    "region_Chennai":1 if region==2 else 0,
+    "region_Delhi":1 if region==3 else 0
+}
+y_new_predict=abs(lr.predict([list(x_new_predict.values())]))
+print(' The average cost of medication is ',mv[chr(97+disease)]*80)
+print('The estimated insurance that can be claimed is ',y_new_predict[0]*80)
+
+## 
